@@ -10,9 +10,9 @@ export interface ControlState {
 type KeysState = { [key: string]: boolean };
 
 export class Controls {
-  private static readonly keyDown: KeysState = {};
+  private static readonly downMap: KeysState = {};
 
-  private static readonly keyHit: KeysState = {};
+  private static readonly hitMap: KeysState = {};
 
   public static bind() {
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -29,32 +29,40 @@ export class Controls {
 
   public static getState(): ControlState {
     return {
-      forward: this.keyDown.ArrowRight,
-      back: this.keyDown.ArrowLeft,
-      punchHigh: this.keyHit.KeyZ,
-      punchMiddle: this.keyHit.KeyX,
-      kick: this.keyHit.KeyC,
-      block: this.keyDown.Space,
+      forward: this.downMap.ArrowRight,
+      back: this.downMap.ArrowLeft,
+      punchHigh: this.hitMap.KeyZ,
+      punchMiddle: this.hitMap.KeyX,
+      kick: this.hitMap.KeyC,
+      block: this.downMap.Space,
     };
   }
 
+  public static keyDown(key: string): boolean {
+    return this.downMap[key];
+  }
+
+  public static keyHit(key: string): boolean {
+    return this.hitMap[key];
+  }
+
   public static reset() {
-    for (const name in this.keyHit) {
-      if (name in this.keyHit) {
-        this.keyHit[name] = false;
+    for (const name in this.hitMap) {
+      if (name in this.hitMap) {
+        this.hitMap[name] = false;
       }
     }
   }
 
   private static onKeyDown(ev: KeyboardEvent) {
-    if (!this.keyDown[ev.code]) {
-      this.keyHit[ev.code] = true;
+    if (!this.downMap[ev.code]) {
+      this.downMap[ev.code] = true;
     }
-    this.keyDown[ev.code] = true;
+    this.hitMap[ev.code] = true;
   }
 
   private static onKeyUp(ev: KeyboardEvent) {
-    this.keyDown[ev.code] = false;
-    this.keyHit[ev.code] = false;
+    this.downMap[ev.code] = false;
+    this.hitMap[ev.code] = false;
   }
 }

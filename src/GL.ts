@@ -7,6 +7,7 @@ import { ScreenManager } from './engine/ScreenManager.ts';
 const canvas = document.getElementsByTagName('canvas')[0]!;
 const GL = canvas.getContext('webgl2', {
   premultipliedAlpha: false,
+  alpha: false,
 })!;
 
 const screenSize = vec2.fromValues(1, 1);

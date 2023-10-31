@@ -287,6 +287,7 @@ export class Shader {
    */
   public updateMatrix(model: mat4) {
     this.modelMatrix = model;
+    // if (this.)
   }
 
   /**

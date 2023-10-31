@@ -1,7 +1,8 @@
 import { NovelCache } from '../cache/NovelCache.ts';
 import { SoundCache, SoundType } from '../cache/SoundCache.ts';
-import { Audio, SoundChannel } from '../engine/Audio.ts';
+import { Audio, Sound, SoundChannel } from '../engine/Audio.ts';
 import { Camera } from '../engine/Camera.ts';
+import { Controls } from '../engine/Controls.ts';
 import { Renderer } from '../engine/Renderer.ts';
 import { Screen } from '../engine/Screen.ts';
 import { ScreenManager } from '../engine/ScreenManager.ts';
@@ -10,6 +11,7 @@ import { clamp, lerp } from '../helpers/MathUtils.ts';
 import { NovelMesh } from '../meshes/NovelMesh.ts';
 import { GameScreen } from './GameScreen.ts';
 import { LoadingScreen } from './LoadingScreen.ts';
+import { MenuScreen } from './MenuScreen.ts';
 import StoryMusic from '@/assets/audio/music/monolog.mp3?url';
 
 export class StoryScreen extends Screen {
@@ -19,7 +21,7 @@ export class StoryScreen extends Screen {
 
   private readonly novelAudio: ArrayBuffer;
 
-  // private audio: Sound;
+  private audio: Sound | null = null;
 
   private timer: number = 0;
 
@@ -37,6 +39,9 @@ export class StoryScreen extends Screen {
           SoundCache.preload(),
         ]),
         () => {
+          if (index !== 0) {
+            localStorage.setItem('career', index.toString());
+          }
           ScreenManager.setScreen(new StoryScreen(index));
         },
       ),
@@ -61,15 +66,26 @@ export class StoryScreen extends Screen {
   public update(delta: number): void {
     this.timer += 0.01667 * delta;
     if (this.timer > 0 && !this.soundStarted) {
-      Audio.play(this.novelAudio, SoundChannel.Voice, 1, false, 1, 0);
+      this.audio = Audio.play(this.novelAudio, SoundChannel.Voice, 1, false, 1, 0);
       this.soundStarted = true;
     }
 
-    if (this.timer > this.frames.length * this.timePerFrame + 2) {
+    let skip = false;
+    if (this.timer > 0.1) {
+      if (Controls.keyHit('Space') || Controls.keyHit('Enter')) {
+        skip = true;
+      }
+    }
+
+    if (this.timer > this.frames.length * this.timePerFrame + 2 || skip) {
+      if (this.audio) {
+        this.audio.ended = true;
+      }
       if (this.storyIndex === 7) {
-        //
+        localStorage.removeItem('career');
+        MenuScreen.startMenu();
       } else {
-        GameScreen.startFight(0, this.storyIndex + 1, this.storyIndex, true, true);
+        GameScreen.startFight(0, this.storyIndex + 1, this.storyIndex, true, true, true);
       }
     } else {
       Camera.position = [-0.2, 3.1, 1.2];

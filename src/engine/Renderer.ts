@@ -2,6 +2,7 @@ import { mat4, quat } from 'gl-matrix';
 import { GL, screenSize } from '../GL.ts';
 import { buildSphere } from '../helpers/BuildSphere.ts';
 import { createIndexBuffer, createVertexBuffer } from '../helpers/GLHelpers.ts';
+import { Skybox } from '../meshes/Skybox.ts';
 import { Camera } from './Camera.ts';
 import { PointLight, SHADOW_SIZE } from './PointLight.ts';
 import { Shader } from './Shader.ts';
@@ -103,13 +104,20 @@ export class Renderer {
     GL.bindFramebuffer(GL.FRAMEBUFFER, null);
   }
 
-  public static renderScene(renderCallback: () => void, lights: PointLight[]) {
+  public static renderScene(
+    renderCallback: () => void,
+    lights: PointLight[],
+    skybox: boolean = true,
+    blackAndWhite: boolean = false,
+  ) {
     // Shadows pass - compute depth maps
     GL.enable(GL.SCISSOR_TEST);
     for (const light of lights) {
       for (let i = 0; i < 6; i++) {
         light.setupShadowPass(i);
         GL.colorMask(true, true, true, true);
+        GL.clearColor(1024, 1, 1, 1);
+        GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
         GL.depthMask(true);
         GL.disable(GL.BLEND);
         GL.enable(GL.DEPTH_TEST);
@@ -122,9 +130,26 @@ export class Renderer {
     // G-buffer pass
     GL.bindFramebuffer(GL.FRAMEBUFFER, this.offscreenBuffer);
     this.setupViewport();
-    GL.clearColor(0.0, 0.0, 0.0, 1.0);
+    GL.clearColor(0.0, 0.0, 0.0, 0.0);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     GL.disable(GL.BLEND);
+
+    if (skybox) {
+      GL.drawBuffers([
+        GL.COLOR_ATTACHMENT0, //
+      ]);
+      GL.disable(GL.DEPTH_TEST);
+      GL.disable(GL.CULL_FACE);
+      Skybox.render();
+
+      GL.drawBuffers([
+        GL.COLOR_ATTACHMENT0, //
+        GL.COLOR_ATTACHMENT1,
+        GL.COLOR_ATTACHMENT2,
+        GL.NONE,
+      ]);
+    }
+
     GL.enable(GL.DEPTH_TEST);
     GL.enable(GL.CULL_FACE);
     GL.cullFace(GL.BACK);
@@ -174,6 +199,7 @@ export class Renderer {
 
     this.composeShader.setTexture('uDiffuse', this.diffuseTexture);
     this.composeShader.setTexture('uLightmap', this.lightMapTexture);
+    GL.uniform1f(this.composeShader.uniform('uBlackWhite'), blackAndWhite ? 1 : 0);
 
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.composeIndexBuffer);
     GL.drawElements(GL.TRIANGLES, 6, GL.UNSIGNED_SHORT, 0);

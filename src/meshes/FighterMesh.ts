@@ -54,8 +54,9 @@ export class FighterMesh {
     this.normalMatrix = mat3.identity(mat3.create());
   }
 
-  public setPosition(position: number, rotated: boolean = false) {
-    const rot = quat.fromEuler(quat.create(), 0, rotated ? 180 : 0, 0);
+  public setPosition(position: number, rotated: boolean | number = false) {
+    const angle = typeof rotated === 'number' ? rotated : rotated ? 180 : 0;
+    const rot = quat.fromEuler(quat.create(), 0, angle, 0);
     mat3.fromQuat(this.normalMatrix, rot);
     mat4.fromRotationTranslationScale(
       this.matrix,
@@ -117,11 +118,6 @@ export class FighterMesh {
     shader.setTexture('uDiffuse', this.texture);
     GL.uniform1f(shader.uniform('uFrame'), this.frameDelta);
     GL.uniformMatrix3fv(shader.uniform('normalMat'), false, this.normalMatrix);
-
-    // shader.setUniforms({
-    //   uFrame: this.frameDelta,
-    //   normalMat: this.normalMatrix,
-    // });
 
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     GL.drawElements(GL.TRIANGLES, this.mesh.indexCount, GL.UNSIGNED_SHORT, 0);

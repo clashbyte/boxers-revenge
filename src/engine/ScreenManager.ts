@@ -14,7 +14,7 @@ export class ScreenManager {
       UI.load(), //
     ]).then(() => {
       MenuScreen.startMenu();
-      // StoryScreen.startStory(0);
+      // GameOverScreen.startGameOver(1);
     });
   }
 

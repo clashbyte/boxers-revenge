@@ -208,7 +208,7 @@ export class Audio {
             if (snd.position) {
               en.positionNode = ctx.createPanner();
               en.positionNode.maxDistance = 20;
-              en.positionNode.rolloffFactor = 0.1;
+              en.positionNode.rolloffFactor = 0.02;
               en.positionNode.positionX.value = snd.position[0];
               en.positionNode.positionY.value = snd.position[1];
               en.positionNode.positionZ.value = -snd.position[2];
@@ -257,6 +257,7 @@ export class Audio {
       }
 
       let musicFound = false;
+      const musicToRemove: MusicTrack[] = [];
       for (const music of this.musicEntries) {
         const active = music.file === this.musicTrack;
         const volume = active ? this.musicVolume : 0;
@@ -272,10 +273,16 @@ export class Audio {
         }
 
         if (current === 0 && !active) {
-          //
+          music.element.pause();
+          music.element.remove();
+          musicToRemove.push(music);
         } else {
           music.gain.gain.value = current;
         }
+      }
+
+      for (const m of musicToRemove) {
+        this.musicEntries.splice(this.musicEntries.indexOf(m), 1);
       }
 
       if (!musicFound && this.musicTrack) {

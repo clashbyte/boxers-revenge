@@ -59,7 +59,7 @@ export class FighterAnimator {
     this.state.to = a.start + a.length - 1;
     this.state.time = 0;
     this.state.length = a.length - 1;
-    this.state.speed = a.fps / 80.0;
+    this.state.speed = 0.5; // a.fps / 60.0;
   }
 
   public update(delta: number) {

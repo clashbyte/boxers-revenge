@@ -3,7 +3,7 @@ import { GL, screenSize } from '../GL.ts';
 import { createIndexBuffer, loadTexture } from '../helpers/GLHelpers.ts';
 import { Shader } from './Shader.ts';
 
-import FontData from '@/assets/font/font.json';
+import FontData from '@/assets/font/font.json?raw';
 import FontImage from '@/assets/font/font.png';
 
 import BoxFrag from '@/shaders/ui/box.frag.glsl?raw';
@@ -60,7 +60,7 @@ export class UI {
 
   public static async load() {
     this.fontTexture = await loadTexture(FontImage, false);
-    this.fontDef = FontData as FontDef;
+    this.fontDef = JSON.parse(FontData) as FontDef;
   }
 
   public static drawQuad(
@@ -106,9 +106,7 @@ export class UI {
     this.quadShader.setBuffer('uv', this.quadBuffer, 2, GL.FLOAT, false, 4 * 4, 2 * 4);
     GL.bindBuffer(GL.ARRAY_BUFFER, null);
 
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.quadIndexBuffer);
-    GL.drawElements(GL.TRIANGLES, 6, GL.UNSIGNED_SHORT, 0);
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+    this.quadShader.draw(this.quadIndexBuffer, 6);
     this.quadShader.unbind();
   }
 
@@ -155,9 +153,9 @@ export class UI {
     GL.uniform4fv(this.boxShader.uniform('uColor'), color);
     GL.uniform2f(this.boxShader.uniform('uSize'), width, height);
 
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.quadIndexBuffer);
-    GL.drawElements(GL.TRIANGLES, 6, GL.UNSIGNED_SHORT, 0);
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+    // GL.blendFunc(GL.ONE, GL.ONE_MINUS_SRC_ALPHA);
+    this.boxShader.draw(this.quadIndexBuffer, 6);
+    // GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
     this.boxShader.unbind();
   }
 

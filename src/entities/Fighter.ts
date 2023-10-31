@@ -318,9 +318,9 @@ export class Fighter {
     let max = 11.5;
     if (this.state === Animation.LoseStance) {
       if (this.localPosition < -9) {
-        this.localPosition += 0.05 * delta;
+        this.localPosition += 0.08 * delta;
       } else if (this.localPosition > 9) {
-        this.localPosition -= 0.05 * delta;
+        this.localPosition -= 0.08 * delta;
       }
     } else if (this.state !== Animation.WinStance) {
       if (this.opposite) {

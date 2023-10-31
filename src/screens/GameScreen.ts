@@ -1,8 +1,11 @@
 import { vec3, vec4 } from 'gl-matrix';
+import Music1 from '../assets/audio/music/fight1.mp3?url';
+import Music2 from '../assets/audio/music/fight2.mp3?url';
 import { FIGHTER_NAMES, FighterCache } from '../cache/FighterCache.ts';
-import { LOCATION_LIGHTS, LocationCache } from '../cache/LocationCache.ts';
+import { LocationCache } from '../cache/LocationCache.ts';
 import { SoundCache } from '../cache/SoundCache.ts';
 import { SoundEnvCache } from '../cache/SoundEnvCache.ts';
+import { LOCATION_LIGHTS } from '../defs/LocationLights.ts';
 import { Audio, SoundChannel } from '../engine/Audio.ts';
 import { Camera } from '../engine/Camera.ts';
 import { Controls, ControlState } from '../engine/Controls.ts';
@@ -16,7 +19,11 @@ import { FighterAI } from '../entities/FighterAI.ts';
 import { easeInOutCubic, easeInQuart, easeOutSine } from '../helpers/Easings.ts';
 import { clamp, damp, invLerp, lerp } from '../helpers/MathUtils.ts';
 import { SceneryMesh } from '../meshes/SceneryMesh.ts';
+import { Skybox } from '../meshes/Skybox.ts';
+import { GameOverScreen } from './GameOverScreen.ts';
 import { LoadingScreen } from './LoadingScreen.ts';
+import { MenuList } from './menus/MenuList.ts';
+import { MenuScreen } from './MenuScreen.ts';
 import { StoryScreen } from './StoryScreen.ts';
 
 enum GameState {
@@ -64,11 +71,16 @@ export class GameScreen extends Screen {
 
   private state: GameState;
 
+  private menuActive: boolean;
+
+  private readonly menuList: MenuList;
+
   public static startFight(
     charIndex1: number,
     charIndex2: number,
     location: number,
     enableAI: boolean,
+    storyMode: boolean,
     sayLine: boolean,
   ) {
     ScreenManager.setScreen(
@@ -77,10 +89,11 @@ export class GameScreen extends Screen {
           LocationCache.preload(location),
           FighterCache.preload(charIndex1, charIndex2),
           SoundCache.preload(),
+          Skybox.preload(),
         ]),
         () => {
           ScreenManager.setScreen(
-            new GameScreen(charIndex1, charIndex2, location, enableAI, sayLine),
+            new GameScreen(charIndex1, charIndex2, location, enableAI, storyMode, !sayLine),
           );
         },
       ),
@@ -93,6 +106,7 @@ export class GameScreen extends Screen {
     locationIndex: number,
     enableAI: boolean = false,
     private readonly storyMode: boolean = false,
+    skipLine: boolean = false,
   ) {
     super();
     const char1Data = FighterCache.get(charIndex1);
@@ -103,7 +117,23 @@ export class GameScreen extends Screen {
     this.kickPower = 0;
     this.kickAngle = 0;
     this.blinkTimer = 0;
+    this.menuActive = false;
     SoundEnvCache.setupForLevel(locationIndex);
+    Audio.setMusic(locationIndex % 2 === 0 ? Music1 : Music2, 0.2);
+
+    this.menuList = new MenuList(
+      ['Продолжить', 'Выйти'],
+      (index) => {
+        if (index === 1) {
+          MenuScreen.startMenu();
+        } else {
+          this.menuActive = false;
+        }
+      },
+      1024 / 2 - 150,
+      768 / 2,
+      300,
+    );
 
     this.fighter1 = new Fighter(char1Data.mesh, char1Data.texture, false, this, 100, 1);
     this.fighter2 = new Fighter(char2Data.mesh, char2Data.texture, true, this, 100, 0.5);
@@ -122,7 +152,7 @@ export class GameScreen extends Screen {
     if (INSTANT_START) {
       this.state = GameState.Game;
       this.stateTime = 1;
-    } else if (storyMode) {
+    } else if (storyMode && !skipLine) {
       this.state = GameState.IntroVoice;
       this.stateTime = 4;
 
@@ -138,7 +168,8 @@ export class GameScreen extends Screen {
     this.viewBob = 0;
   }
 
-  public update(delta: number): void {
+  public update(realDelta: number): void {
+    const delta = !this.menuActive ? realDelta : 0;
     let state1: ControlState | null = null;
     let state2: ControlState | null = null;
 
@@ -178,8 +209,13 @@ export class GameScreen extends Screen {
         if (this.stateTime === 0) {
           if (this.fighter1Wins === 2 || this.fighter2Wins === 2) {
             if (this.storyMode) {
-              StoryScreen.startStory(this.charIndex2);
+              if (this.fighter1.health > 0) {
+                StoryScreen.startStory(this.charIndex2);
+              } else {
+                GameOverScreen.startGameOver(this.charIndex2 - 1);
+              }
             } else {
+              MenuScreen.startMenu();
             }
             this.state = GameState.PendingExit;
           } else {
@@ -191,13 +227,15 @@ export class GameScreen extends Screen {
         break;
     }
 
-    if (this.state === GameState.Game) {
+    if (this.state === GameState.Game && !this.menuActive) {
       state1 = this.fighter1AI?.think(delta) ?? Controls.getState();
       state2 = this.fighter2AI?.think(delta) ?? null;
     }
 
-    this.fighter1.update(delta, state1, this.fighter2);
-    this.fighter2.update(delta, state2, this.fighter1);
+    if (!this.menuActive) {
+      this.fighter1.update(delta, state1, this.fighter2);
+      this.fighter2.update(delta, state2, this.fighter1);
+    }
 
     const distance = clamp(Math.abs(this.fighter1.position - this.fighter2.position), 7, 9);
     const center = (this.fighter1.position + this.fighter2.position) / 2.0;
@@ -241,6 +279,19 @@ export class GameScreen extends Screen {
 
     Camera.position = viewPos;
     Camera.rotation = viewAngle;
+
+    if (
+      Controls.keyHit('Escape') &&
+      (this.menuActive || (!this.menuActive && this.state === GameState.Game))
+    ) {
+      this.menuActive = !this.menuActive;
+      if (this.menuActive) {
+        this.menuList.reset();
+      }
+    }
+    if (this.menuActive) {
+      this.menuList.update(realDelta, true);
+    }
   }
 
   public render(): void {
@@ -384,6 +435,21 @@ export class GameScreen extends Screen {
         );
         UI.drawFade(outroB);
         break;
+    }
+
+    if (this.menuActive) {
+      UI.drawBox([0, 0, 0, 0.5], 1024 / 2 - 150, 0, 300, 768);
+      UI.drawText(
+        'Пауза',
+        1024 / 2,
+        768 / 2 - 30,
+        30,
+        [1, 1, 1, 1],
+        true,
+        TextAlign.Middle,
+        TextAlign.End,
+      );
+      this.menuList.render(1);
     }
   }
 
