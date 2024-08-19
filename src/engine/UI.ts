@@ -6,6 +6,7 @@ import { Shader } from './Shader.ts';
 import FontData from '@/assets/font/font.json?raw';
 import FontImage from '@/assets/font/font.png';
 
+import { Locale } from '@/locale/Locale.ts';
 import BoxFrag from '@/shaders/ui/box.frag.glsl?raw';
 import BoxVert from '@/shaders/ui/box.vert.glsl?raw';
 import FontFrag from '@/shaders/ui/font.frag.glsl?raw';
@@ -160,7 +161,7 @@ export class UI {
   }
 
   public static drawText(
-    text: string,
+    textOrLabel: string,
     x: number,
     y: number,
     size: number,
@@ -173,6 +174,7 @@ export class UI {
     const s = size / this.fontDef.fontSize[0];
     const tsx = 1.0 / this.fontDef.size[0];
     const tsy = 1.0 / this.fontDef.size[1];
+    const text = textOrLabel.startsWith('#') ? Locale.get(textOrLabel) : textOrLabel;
 
     let px = 0;
     const py = 0;

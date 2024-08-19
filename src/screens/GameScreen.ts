@@ -1,7 +1,7 @@
 import { vec3, vec4 } from 'gl-matrix';
 import Music1 from '../assets/audio/music/fight1.mp3?url';
 import Music2 from '../assets/audio/music/fight2.mp3?url';
-import { FIGHTER_NAMES, FighterCache } from '../cache/FighterCache.ts';
+import { FIGHTER_NAMES, FighterCache, FighterType } from '../cache/FighterCache.ts';
 import { LocationCache } from '../cache/LocationCache.ts';
 import { SoundCache } from '../cache/SoundCache.ts';
 import { SoundEnvCache } from '../cache/SoundEnvCache.ts';
@@ -79,7 +79,7 @@ export class GameScreen extends Screen {
     charIndex1: number,
     charIndex2: number,
     location: number,
-    enableAI: boolean,
+    aiLevel: number,
     storyMode: boolean,
     sayLine: boolean,
   ) {
@@ -93,7 +93,7 @@ export class GameScreen extends Screen {
         ]),
         () => {
           ScreenManager.setScreen(
-            new GameScreen(charIndex1, charIndex2, location, enableAI, storyMode, !sayLine),
+            new GameScreen(charIndex1, charIndex2, location, aiLevel, storyMode, !sayLine),
           );
         },
       ),
@@ -104,7 +104,7 @@ export class GameScreen extends Screen {
     private readonly charIndex1: number,
     private readonly charIndex2: number,
     locationIndex: number,
-    enableAI: boolean = false,
+    aiLevel: number = -1,
     private readonly storyMode: boolean = false,
     skipLine: boolean = false,
   ) {
@@ -118,8 +118,8 @@ export class GameScreen extends Screen {
     this.kickAngle = 0;
     this.blinkTimer = 0;
     this.menuActive = false;
-    SoundEnvCache.setupForLevel(locationIndex);
-    Audio.setMusic(locationIndex % 2 === 0 ? Music1 : Music2, 0.2);
+    SoundEnvCache.setupForLevel();
+    Audio.setMusic(locationIndex % 2 === 0 ? Music1 : Music2, 0.1);
 
     this.menuList = new MenuList(
       ['Продолжить', 'Выйти'],
@@ -135,8 +135,24 @@ export class GameScreen extends Screen {
       300,
     );
 
-    this.fighter1 = new Fighter(char1Data.mesh, char1Data.texture, false, this, 100, 1);
-    this.fighter2 = new Fighter(char2Data.mesh, char2Data.texture, true, this, 100, 0.5);
+    this.fighter1 = new Fighter(
+      char1Data.mesh,
+      char1Data.texture,
+      false,
+      this,
+      100,
+      1,
+      charIndex1 === FighterType.Woman,
+    );
+    this.fighter2 = new Fighter(
+      char2Data.mesh,
+      char2Data.texture,
+      true,
+      this,
+      lerp(100, 200, aiLevel !== -1 ? aiLevel : 0),
+      0.5,
+      charIndex2 === FighterType.Woman,
+    );
     this.location = new SceneryMesh(locData.mesh, locData.texture);
 
     this.lights = [new PointLight([0, 5, 5], 9, [1, 1, 1])];
@@ -147,7 +163,7 @@ export class GameScreen extends Screen {
     }
 
     this.fighter1AI = null; // new FighterAI(this.fighter1, this.fighter2, 0);
-    this.fighter2AI = enableAI ? new FighterAI(this.fighter2, this.fighter1) : null;
+    this.fighter2AI = aiLevel !== -1 ? new FighterAI(this.fighter2, this.fighter1, aiLevel) : null;
 
     if (INSTANT_START) {
       this.state = GameState.Game;
@@ -164,7 +180,7 @@ export class GameScreen extends Screen {
       this.stateTime = 2;
     }
 
-    this.viewPosition = [0, 10, 20];
+    this.viewPosition = [0, 10, 10];
     this.viewBob = 0;
   }
 
@@ -318,11 +334,11 @@ export class GameScreen extends Screen {
 
     // Health bars
     const hOff = -300 * uiOff;
-    const f1health = (400 * this.fighter1.health) / 100;
+    const f1health = (400 * this.fighter1.health) / this.fighter1.maxHealth;
     UI.drawBox([0, 0.5, 0, 1], 16, 32 + hOff, f1health, 32, 100);
     UI.drawBox([0.6, 0.6, 0.6, 1], 16, 32 + hOff, 400, 32, 1);
 
-    const f2health = (400 * this.fighter2.health) / 100;
+    const f2health = (400 * this.fighter2.health) / this.fighter2.maxHealth;
     UI.drawBox([0, 0.5, 0, 1], 1008 - f2health, 32 + hOff, f2health, 32, 100);
     UI.drawBox([0.6, 0.6, 0.6, 1], 608, 32 + hOff, 400, 32, 1);
 
@@ -424,7 +440,7 @@ export class GameScreen extends Screen {
           TextAlign.End,
         );
         UI.drawText(
-          winner === 3 ? 'победила' : 'победил',
+          winner === FighterType.Woman ? 'победила' : 'победил',
           1024 / 2,
           768 / 2,
           50,
@@ -464,7 +480,7 @@ export class GameScreen extends Screen {
     this.kickPower = 0;
     this.kickAngle = 0;
     this.blinkTimer = 0;
-    vec3.set(this.viewPosition, 0, 10, 30);
+    vec3.set(this.viewPosition, 0, 4, 12);
 
     this.fighter1.reset();
     this.fighter2.reset();

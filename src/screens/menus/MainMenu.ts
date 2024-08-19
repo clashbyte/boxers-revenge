@@ -9,10 +9,10 @@ export class MainMenu extends Menu {
     super(changeMenu);
     this.list = new MenuList(
       [
-        'Карьера', //
-        'Один на один',
-        'Настройки',
-        'Авторы',
+        '#menu.main.career', //
+        '#menu.main.versus',
+        '#menu.main.settings',
+        '#menu.main.authors',
       ],
       this.menuSelect.bind(this),
       20,

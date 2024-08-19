@@ -144,12 +144,14 @@ export class Audio {
 
   public static init() {
     const contextClick = () => {
-      this.lateInit();
-      window.removeEventListener('click', contextClick);
-      window.removeEventListener('keydown', contextClick);
+      try {
+        this.lateInit();
+        window.removeEventListener('click', contextClick);
+        // window.removeEventListener('keydown', contextClick);
+      } catch (ex) {}
     };
     window.addEventListener('click', contextClick);
-    window.addEventListener('keydown', contextClick);
+    // window.addEventListener('keydown', contextClick);
   }
 
   public static update(delta: number) {
@@ -164,15 +166,27 @@ export class Audio {
       const dirForward = vec3.transformMat3(vec3.create(), [0, 0, -1], rotMat);
       const dirUp = vec3.transformMat3(vec3.create(), [0, 1, 0], rotMat);
 
-      ctx.listener.positionX.value = posVec[0];
-      ctx.listener.positionY.value = posVec[1];
-      ctx.listener.positionZ.value = -posVec[2];
-      ctx.listener.upX.value = dirUp[0];
-      ctx.listener.upY.value = dirUp[1];
-      ctx.listener.upZ.value = dirUp[2];
-      ctx.listener.forwardX.value = dirForward[0];
-      ctx.listener.forwardY.value = dirForward[1];
-      ctx.listener.forwardZ.value = dirForward[2];
+      if (ctx.listener.positionX) {
+        ctx.listener.positionX.value = posVec[0];
+        ctx.listener.positionY.value = posVec[1];
+        ctx.listener.positionZ.value = -posVec[2];
+        ctx.listener.upX.value = dirUp[0];
+        ctx.listener.upY.value = dirUp[1];
+        ctx.listener.upZ.value = dirUp[2];
+        ctx.listener.forwardX.value = dirForward[0];
+        ctx.listener.forwardY.value = dirForward[1];
+        ctx.listener.forwardZ.value = dirForward[2];
+      } else {
+        ctx.listener.setPosition(posVec[0], posVec[1], -posVec[2]);
+        ctx.listener.setOrientation(
+          dirForward[0],
+          dirForward[1],
+          dirForward[2],
+          dirUp[0],
+          dirUp[1],
+          dirUp[2],
+        );
+      }
 
       for (const en of this.cache) {
         if (en.state === CacheStatus.None) {
@@ -382,6 +396,8 @@ export class Audio {
         this.createChannel(),
         this.createChannel(),
       );
+    } else {
+      throw new Error('Failed to start audio');
     }
   }
 

@@ -29,7 +29,7 @@ export class Fighter {
 
   public static readonly KICK_FATIGUE = 30;
 
-  private readonly MOVE_SPEED = 0.03;
+  private readonly MOVE_SPEED = 0.045;
 
   private readonly screen: GameScreen;
 
@@ -57,7 +57,7 @@ export class Fighter {
 
   private localFatigue: number;
 
-  private readonly maxHealth: number;
+  private readonly localMaxHealth: number;
 
   private fatigueDecreasing: boolean;
 
@@ -65,6 +65,10 @@ export class Fighter {
 
   public get health() {
     return this.localHealth;
+  }
+
+  public get maxHealth() {
+    return this.localMaxHealth;
   }
 
   public get fatigue() {
@@ -86,6 +90,7 @@ export class Fighter {
     screen: GameScreen,
     health: number = 100,
     private readonly kickFactor: number = 1.0,
+    private readonly femaleSounds: boolean = false,
   ) {
     this.screen = screen;
     this.mesh = new FighterMesh(mesh, texture);
@@ -100,7 +105,7 @@ export class Fighter {
     this.damageValue = 0;
     this.damageAt = null;
     this.localHealth = health;
-    this.maxHealth = health;
+    this.localMaxHealth = health;
     this.localFatigue = 0;
     this.fatigueDecreasing = false;
     this.stepTimer = 0;
@@ -330,7 +335,7 @@ export class Fighter {
         min = Math.max(opponent.position - 10, min);
         max = opponent.position - 2.5;
       }
-      this.localPosition = clamp(this.localPosition + this.movement, min, max);
+      this.localPosition = clamp(this.localPosition + this.movement * delta, min, max);
     }
 
     // Update animations
@@ -353,7 +358,7 @@ export class Fighter {
     this.punchSide = false;
     this.damageValue = 0;
     this.damageAt = null;
-    this.localHealth = this.maxHealth;
+    this.localHealth = this.localMaxHealth;
     this.localFatigue = 0;
     this.fatigueDecreasing = false;
 
@@ -408,11 +413,11 @@ export class Fighter {
 
     if (needGrunt) {
       Audio.play(
-        SoundCache.get(SoundType.PainMale),
+        SoundCache.get(this.femaleSounds ? SoundType.PainFemale : SoundType.PainMale),
         SoundChannel.FX,
         0.8,
         false,
-        lerp(0.8, 1.0, Math.random()),
+        lerp(0.9, 1.0, Math.random()),
         0,
         [this.localPosition, 0.1, 0],
       );

@@ -7,6 +7,7 @@ import { Camera } from './Camera.ts';
 import { PointLight, SHADOW_SIZE } from './PointLight.ts';
 import { Shader } from './Shader.ts';
 
+import { Frustum } from '@/engine/Frustum.ts';
 import ComposeFrag from '@/shaders/compose/compose.frag.glsl?raw';
 import ComposeVert from '@/shaders/compose/compose.vert.glsl?raw';
 import SphereFrag from '@/shaders/compose/light.frag.glsl?raw';
@@ -41,6 +42,8 @@ export class Renderer {
 
   private static lightSphereShader: Shader;
 
+  private static frustum: Frustum;
+
   public static init() {
     // Building offscreen target
     this.offscreenBuffer = GL.createFramebuffer()!;
@@ -55,6 +58,7 @@ export class Renderer {
     this.lightSphereIndexCount = sphere.indices.length;
     this.lightMapBuffer = GL.createFramebuffer()!;
     this.lightSphereShader = new Shader(SphereFrag, SphereVert);
+    this.frustum = new Frustum();
 
     GL.getExtension('EXT_color_buffer_float');
     GL.getExtension('WEBGL_depth_texture');
@@ -110,9 +114,16 @@ export class Renderer {
     skybox: boolean = true,
     blackAndWhite: boolean = false,
   ) {
+    const [projMat, cameraMat] = Camera.frustumMatrices;
+    this.frustum.rebuild(projMat, cameraMat);
+
+    const activeLights = lights.filter((l) =>
+      this.frustum.sphereCoordsVisible(l.position, l.range),
+    );
+
     // Shadows pass - compute depth maps
     GL.enable(GL.SCISSOR_TEST);
-    for (const light of lights) {
+    for (const light of activeLights) {
       for (let i = 0; i < 6; i++) {
         light.setupShadowPass(i);
         GL.colorMask(true, true, true, true);
@@ -158,7 +169,8 @@ export class Renderer {
     // Lights pass - render point lights
     GL.bindFramebuffer(GL.FRAMEBUFFER, this.lightMapBuffer);
     this.setupViewport();
-    GL.clearColor(0.15, 0.15, 0.2, 1.0);
+    GL.clearColor(0.1, 0.15, 0.2, 1.0);
+    // GL.clearColor(0.0, 0.05, 0.1, 1.0);
     GL.clear(GL.COLOR_BUFFER_BIT);
     GL.depthMask(false);
     GL.cullFace(GL.FRONT);
@@ -167,7 +179,7 @@ export class Renderer {
     GL.depthFunc(GL.GEQUAL);
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.lightSphereIndexBuffer);
     const rot = quat.identity(quat.create());
-    for (const light of lights) {
+    for (const light of activeLights) {
       const mat = mat4.fromRotationTranslationScale(mat4.create(), rot, light.position, [
         light.range,
         light.range,

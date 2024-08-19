@@ -58,6 +58,7 @@ export class FighterAI {
     this.comboShift = 0;
     this.comboStep = 0;
     this.combo = [];
+    console.debug(difficulty);
 
     this.reset();
   }
@@ -135,13 +136,13 @@ export class FighterAI {
       while (true) {
         let punch: PunchType | null = null;
         if (
-          Math.random() < lerp(0.3, 0.4, this.difficulty) &&
+          Math.random() < lerp(0.1, 0.4, this.difficulty) &&
           quota > PUNCH_QUOTA[PunchType.Kick]
         ) {
           punch = PunchType.Kick;
           quota -= PUNCH_QUOTA[PunchType.Kick];
         } else if (
-          Math.random() < lerp(0.6, 0.8, this.difficulty) &&
+          Math.random() < lerp(0.4, 0.8, this.difficulty) &&
           quota > PUNCH_QUOTA[PunchType.Torso]
         ) {
           punch = PunchType.Torso;
@@ -231,10 +232,6 @@ export class FighterAI {
       punchMiddle: type === PunchType.Torso,
       kick: type === PunchType.Kick,
     });
-  }
-
-  private can(type: PunchType) {
-    return 100 - this.fighter.fatigue >= PUNCH_QUOTA[type];
   }
 
   private idleTimer() {

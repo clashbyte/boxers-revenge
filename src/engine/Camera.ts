@@ -56,6 +56,15 @@ export class Camera {
   private static matrixDirty: boolean = true;
 
   /**
+   * Get frustum matrices
+   */
+  public static get frustumMatrices() {
+    this.updateMatrices();
+
+    return [this.projMatrix, this.viewMatrix] as const;
+  }
+
+  /**
    * Get camera position vector
    * @returns {any}
    */

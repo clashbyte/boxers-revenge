@@ -89,7 +89,14 @@ export class GameOverScreen extends Screen {
       this.appear = Math.min(this.appear + 0.01 * delta, 1);
       if (this.appear === 1) {
         if (this.exitRetry) {
-          GameScreen.startFight(0, this.retryFight + 1, this.retryFight, true, true, false);
+          GameScreen.startFight(
+            0,
+            this.retryFight + 1,
+            this.retryFight,
+            this.retryFight / 6,
+            true,
+            false,
+          );
         } else {
           MenuScreen.startMenu();
         }

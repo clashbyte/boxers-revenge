@@ -1,9 +1,13 @@
 /* eslint no-await-in-loop: 0 */
 import * as fs from 'fs';
 import * as path from 'node:path';
+import { ZstdInit, ZstdSimple } from '@oneidentity/zstd-js';
 import * as imagick from 'imagemagick';
-import { decodeMD3 } from '../src/helpers/decodeMD3.ts';
+import { decodeMD3, MD3Frame } from '../src/helpers/decodeMD3.ts';
 import { BinaryWriter } from './BinaryWriter.ts';
+
+const COMPRESS_FRAMES = true;
+const USE_ZSTD = true;
 
 async function recompressTexture(index: number) {
   const srcImage = path.resolve(`raw_data/textures/tex${index + 30}.bmp`);
@@ -34,15 +38,11 @@ async function writeAnimations(f: BinaryWriter, index: number) {
   }
 }
 
-async function writeMesh(f: BinaryWriter, index: number) {
-  const modelFile = fs.readFileSync(
-    path.resolve(`raw_data/fighters/${index + 1}_lower.bhm`),
-  ).buffer;
-  const rawModel = decodeMD3(modelFile)[0];
-
-  f.writeShort(rawModel.frames.length);
-  f.writeShort(rawModel.uv.length / 2);
-  for (const frame of rawModel.frames) {
+function buildRawFrames(frames: MD3Frame[]): ArrayBuffer {
+  const buffer = new ArrayBuffer(20 * 1024 * 1024);
+  const f = new BinaryWriter(buffer);
+  for (let fr = 0; fr < frames.length; fr++) {
+    const frame = frames[fr];
     for (let i = 0; i < frame.position.length; i += 3) {
       for (let j = i; j < i + 3; j++) {
         f.writeSignedShort(Math.round(frame.position[j] * 64.0));
@@ -62,6 +62,77 @@ async function writeMesh(f: BinaryWriter, index: number) {
       }
     }
   }
+
+  return buffer.slice(0, f.offset);
+}
+
+function buildCompressedFrames(frames: MD3Frame[]): ArrayBuffer {
+  const buffer = new ArrayBuffer(20 * 1024 * 1024);
+  const f = new BinaryWriter(buffer);
+  let refIndex = 0;
+
+  for (let fr = 0; fr < frames.length; fr++) {
+    const frame = frames[fr];
+    let refFrame = refIndex !== -1 ? frames[refIndex] : null;
+    if (refFrame) {
+      for (let j = 0; j < frame.position.length; j++) {
+        if (Math.abs(frame.position[j] - refFrame.position[j]) * 64.0 > 127.0) {
+          refFrame = frame;
+          refIndex = fr;
+          break;
+        }
+      }
+    }
+
+    f.writeShort(refFrame !== frame && refFrame ? refIndex + 1 : 0);
+    // console.debug(refFrame !== frame && refFrame ? refIndex + 1 : 0);
+    for (let i = 0; i < frame.position.length; i += 3) {
+      for (let j = i; j < i + 3; j++) {
+        if (refFrame !== frame && refFrame) {
+          f.writeSignedByte(Math.round((frame.position[j] - refFrame.position[j]) * 64.0));
+        } else {
+          f.writeSignedShort(Math.round(frame.position[j] * 64.0));
+        }
+      }
+
+      const nx = frame.normal[i];
+      const ny = frame.normal[i + 1];
+      const nz = frame.normal[i + 2];
+      if (nx === 0 && nz === 0) {
+        f.writeByte(0);
+        f.writeByte(ny < 0 ? 128 : 0);
+      } else {
+        const lat = Math.round((Math.acos(ny) * 255) / (Math.PI * 2));
+        const lng = Math.round((Math.atan2(nz, nx) * 255) / (Math.PI * 2));
+        f.writeByte(lng);
+        f.writeByte(lat);
+      }
+    }
+  }
+
+  return buffer.slice(0, f.offset);
+}
+
+async function writeMesh(f: BinaryWriter, index: number) {
+  const modelFile = fs.readFileSync(
+    path.resolve(`raw_data/fighters/${index + 1}_lower.bhm`),
+  ).buffer;
+  const rawModel = decodeMD3(modelFile)[0];
+
+  f.writeShort(rawModel.frames.length);
+  f.writeShort(rawModel.uv.length / 2);
+  f.writeByte((COMPRESS_FRAMES ? 1 : 0) + (USE_ZSTD ? 2 : 0));
+
+  let frameData = COMPRESS_FRAMES
+    ? buildCompressedFrames(rawModel.frames)
+    : buildRawFrames(rawModel.frames);
+  if (USE_ZSTD) {
+    const data = ZstdSimple.compress(new Uint8Array(frameData), 16);
+    frameData = data.buffer;
+  }
+
+  f.writeInt(frameData.byteLength);
+  f.writeArrayBuffer(frameData);
   for (let i = 0; i < rawModel.uv.length; i++) {
     f.writeFloat(rawModel.uv[i]);
   }
@@ -73,6 +144,7 @@ async function writeMesh(f: BinaryWriter, index: number) {
 }
 
 (async () => {
+  await ZstdInit();
   for (let i = 0; i < 8; i++) {
     const buffer = new ArrayBuffer(20 * 1024 * 1024);
     const f = new BinaryWriter(buffer);
@@ -82,7 +154,7 @@ async function writeMesh(f: BinaryWriter, index: number) {
     await writeAnimations(f, i);
 
     const outBuffer = new DataView(buffer, 0, f.offset);
-    await fs.writeFileSync(path.resolve(`src/assets/fighters/fighter${i + 1}.fgt`), outBuffer, {});
+    fs.writeFileSync(path.resolve(`src/assets/fighters/fighter${i + 1}.fgt`), outBuffer, {});
 
     await recompressTexture(i);
 

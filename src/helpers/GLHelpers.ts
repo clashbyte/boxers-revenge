@@ -17,10 +17,7 @@ export interface TextureAtlas {
 
 export function createVertexBuffer(data: BufferSource, hint: GLenum = GL.STATIC_DRAW) {
   const buffer = GL.createBuffer()!;
-
-  GL.bindBuffer(GL.ARRAY_BUFFER, buffer);
-  GL.bufferData(GL.ARRAY_BUFFER, data, hint);
-  GL.bindBuffer(GL.ARRAY_BUFFER, null);
+  updateVertexBuffer(buffer, data, hint);
 
   return buffer;
 }

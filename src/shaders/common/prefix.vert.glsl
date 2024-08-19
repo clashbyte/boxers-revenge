@@ -1,4 +1,5 @@
 #version 300 es
+SHADER_DEFINE_LIST;
 precision highp float;
 
 uniform mat4 projMat;

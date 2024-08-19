@@ -4,7 +4,7 @@ import { FighterCache, FighterType } from '../cache/FighterCache.ts';
 import { LocationCache } from '../cache/LocationCache.ts';
 import { LOCATION_LIGHTS } from '../defs/LocationLights.ts';
 import { LOCATION_POINTS } from '../defs/LocationPoints.ts';
-import { Audio } from '../engine/Audio.ts';
+import { Audio, SoundChannel } from '../engine/Audio.ts';
 import { Camera } from '../engine/Camera.ts';
 import { Controls } from '../engine/Controls.ts';
 import { PointLight } from '../engine/PointLight.ts';
@@ -22,6 +22,7 @@ import { LoadingScreen } from './LoadingScreen.ts';
 import { CareerMenu } from './menus/CareerMenu.ts';
 import { MainMenu } from './menus/MainMenu.ts';
 import { Menu, MenuType } from './menus/Menu.ts';
+import { SoundCache, SoundType } from '@/cache/SoundCache.ts';
 
 export class MenuScreen extends Screen {
   private readonly screens: Menu[];
@@ -55,6 +56,7 @@ export class MenuScreen extends Screen {
           LocationCache.preload(location), //
           FighterCache.preload(FighterType.Boxer),
           Skybox.preload(),
+          SoundCache.preload(),
         ]),
         () => {
           ScreenManager.setScreen(new MenuScreen(location));
@@ -67,7 +69,7 @@ export class MenuScreen extends Screen {
     super();
     const locData = LocationCache.get(locationIndex);
     this.location = new SceneryMesh(locData.mesh, locData.texture);
-    Audio.setMusic(MenuMusic, 0.3);
+    Audio.setMusic(MenuMusic, 0.2);
 
     const fighterData = FighterCache.get(FighterType.Boxer);
     this.boxer = new FighterMesh(fighterData.mesh, fighterData.texture);
@@ -111,6 +113,8 @@ export class MenuScreen extends Screen {
     if (this.menu !== MenuType.Main && this.targetMenu === null) {
       if (Controls.keyHit('Escape')) {
         this.targetMenu = MenuType.Main;
+
+        Audio.play(SoundCache.get(SoundType.MenuBack), SoundChannel.UI, 1);
       }
     }
 

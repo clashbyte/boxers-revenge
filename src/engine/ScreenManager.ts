@@ -1,6 +1,9 @@
-import { MenuScreen } from '../screens/MenuScreen.ts';
+import { ZstdInit } from '@oneidentity/zstd-js/wasm/decompress';
 import { Screen } from './Screen.ts';
 import { UI } from './UI.ts';
+import { Camera } from '@/engine/Camera.ts';
+import { screenSize } from '@/GL.ts';
+import { MenuScreen } from '@/screens/MenuScreen.ts';
 
 export class ScreenManager {
   private static screen: Screen | null = null;
@@ -12,9 +15,13 @@ export class ScreenManager {
   public static init() {
     Promise.all([
       UI.load(), //
+      ZstdInit(),
     ]).then(() => {
+      Camera.updateProjection(screenSize[0] / screenSize[1]);
       MenuScreen.startMenu();
       // GameOverScreen.startGameOver(1);
+      // GameScreen.startFight(0, 7, 6, 0, true, true);
+      // StoryScreen.startStory(0);
     });
   }
 

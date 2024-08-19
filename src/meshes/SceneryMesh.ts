@@ -26,7 +26,9 @@ export class SceneryMesh {
     this.indexBuffer = createIndexBuffer(new Uint16Array(mesh.indices.buffer));
     this.texture = texture;
 
-    this.shader = new Shader(SceneryFrag, SceneryVert, true);
+    this.shader = new Shader(SceneryFrag, SceneryVert, {
+      deferred: true,
+    });
 
     this.vao = GL.createVertexArray()!;
     this.shader.bind();

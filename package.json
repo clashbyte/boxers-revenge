@@ -33,8 +33,10 @@
     "vite": "^4.4.5"
   },
   "dependencies": {
+    "@oneidentity/zstd-js": "^1.0.3",
     "@rc-foundation/eslint-config-rc": "^0.0.25",
     "gl-matrix": "^3.4.3",
-    "url": "^0.11.3"
+    "url": "^0.11.3",
+    "vite-plugin-glsl": "^1.2.1"
   }
 }

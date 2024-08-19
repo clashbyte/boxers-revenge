@@ -19,15 +19,15 @@ export class CareerMenu extends Menu {
     const list =
       this.careerState !== null
         ? [
-            'Продолжить',
-            'Новая игра', //
+            '#menu.career.resume',
+            '#menu.career.new_game', //
             null,
-            'Назад',
+            '#menu.career.back',
           ]
         : [
-            'Новая игра', //
+            '#menu.career.new_game', //
             null,
-            'Назад',
+            '#menu.career.back',
           ];
 
     this.list = new MenuList(list, this.menuSelect.bind(this), 20, 768 / 2, 300);
@@ -44,7 +44,7 @@ export class CareerMenu extends Menu {
   public render(appear: number) {
     UI.drawBox([0, 0, 0, appear * 0.5], 20, 0, 300, 768);
     UI.drawText(
-      'Карьера',
+      '#menu.main.career',
       170,
       768 / 4,
       50,

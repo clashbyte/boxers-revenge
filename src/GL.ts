@@ -25,8 +25,9 @@ const onResize = () => {
 window.addEventListener('resize', onResize);
 
 let prevTime: number = 0;
-const onFrame = (time: number) => {
-  requestAnimationFrame(onFrame);
+let prevFrame: number = 0;
+function onFrame(time: number) {
+  prevFrame = requestAnimationFrame(onFrame);
   const delta = (time - prevTime) / 16.6667;
   prevTime = time;
 
@@ -34,7 +35,19 @@ const onFrame = (time: number) => {
   ScreenManager.render();
   Controls.reset();
   Audio.update(delta);
-};
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    prevTime = performance.now();
+    prevFrame = requestAnimationFrame(onFrame);
+    console.debug('visible');
+  } else {
+    cancelAnimationFrame(prevFrame);
+    prevFrame = 0;
+    console.debug('halt');
+  }
+});
 
 const bootstrap = () => {
   Audio.init();
@@ -43,8 +56,12 @@ const bootstrap = () => {
   ScreenManager.init();
   Controls.bind();
 
+  if (prevFrame) {
+    cancelAnimationFrame(prevFrame);
+    prevFrame = 0;
+  }
   prevTime = performance.now();
-  onFrame(prevTime);
+  prevFrame = requestAnimationFrame(onFrame);
 };
 
 export { bootstrap, screenSize, GL };

@@ -8,6 +8,10 @@ uniform float uLightRange;
 
 in vec4 vUv;
 
+float random(highp vec2 coords) {
+    return fract(sin(dot(coords.xy, vec2(12.9898,78.233))) * 43758.5453);
+}
+
 #define TEXEL_SIZE 1.0 / 1024.0
 
 vec2 cubeToUV( vec3 v, float texelSizeY ) {
@@ -86,7 +90,6 @@ void main() {
         power = 1.0 - pow(len / uLightRange, 2.0);
         power *= 1.0 - pow(1.0 - ndotl, 2.0);
 
-        float shadow = 0.0;
         vec2 offset = vec2(-1, 1) * 2.0 * TEXEL_SIZE;
 
         power *= (

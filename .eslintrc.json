@@ -9,7 +9,8 @@
     "import/no-cycle": "off",
     "default-case": "off",
     "no-case-declarations": "off",
-    "prefer-destructuring": "off"
+    "prefer-destructuring": "off",
+    "complexity": "off"
   }
 }
 

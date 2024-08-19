@@ -1,6 +1,8 @@
 import { Controls } from '../../engine/Controls.ts';
 import { TextAlign, UI } from '../../engine/UI.ts';
 import { damp, euclideanModulo, saturate } from '../../helpers/MathUtils.ts';
+import { SoundCache, SoundType } from '@/cache/SoundCache.ts';
+import { Audio, SoundChannel } from '@/engine/Audio.ts';
 
 type MenuItem = string | [string, string] | null;
 
@@ -57,6 +59,7 @@ export class MenuList {
           click = 1;
         }
         if (click !== null) {
+          Audio.play(SoundCache.get(SoundType.MenuOK), SoundChannel.UI, 1, false);
           this.onSelect(this.index, click);
         }
       }
@@ -82,6 +85,8 @@ export class MenuList {
     }
     if (pos !== this.index) {
       this.index = pos;
+
+      Audio.play(SoundCache.get(SoundType.MenuSelect), SoundChannel.UI, 1);
     }
 
     this.visualIndex = damp(this.visualIndex, this.index, 0.3, delta);

@@ -74,6 +74,7 @@ export class StoryScreen extends Screen {
     if (this.timer > 0.1) {
       if (Controls.keyHit('Space') || Controls.keyHit('Enter')) {
         skip = true;
+        Audio.play(SoundCache.get(SoundType.MenuOK), SoundChannel.UI, 1);
       }
     }
 
@@ -85,7 +86,14 @@ export class StoryScreen extends Screen {
         localStorage.removeItem('career');
         MenuScreen.startMenu();
       } else {
-        GameScreen.startFight(0, this.storyIndex + 1, this.storyIndex, true, true, true);
+        GameScreen.startFight(
+          0,
+          this.storyIndex + 1,
+          this.storyIndex,
+          this.storyIndex / 6,
+          true,
+          true,
+        );
       }
     } else {
       Camera.position = [-0.2, 3.1, 1.2];

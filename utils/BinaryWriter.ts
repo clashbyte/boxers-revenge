@@ -84,4 +84,9 @@ export class BinaryWriter {
       }
     }
   }
+
+  public writeArrayBuffer(data: ArrayBuffer) {
+    new Uint8Array(this.stream.buffer).set(new Uint8Array(data), this.pos);
+    this.pos += data.byteLength;
+  }
 }
